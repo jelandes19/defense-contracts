@@ -30,7 +30,7 @@ def pull_gen(xs):
     return lambda: pull_list(xs)
 
 def main():
-    piid_file = open("piids_trimmed.txt", "r")
+    piid_file = open("piids.txt", "r")
     piids = []
     for line in piid_file:
         piids.append(line.strip())
