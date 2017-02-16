@@ -7,7 +7,7 @@ num_piids = 0
 num_proc = 100
 count = 0
 default_piid_directory = "piid_csvs"
-default_piid_file = "piids.txt"
+default_piid_file = "piids_trimmed.txt"
 piid_directory = ""
 
 def split(xs, n):
