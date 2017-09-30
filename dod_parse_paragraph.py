@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import os
 import sys
+import re
 
 def text(file_number, raw_html_directory):
     file_name = str(file_number) + ".html"
@@ -11,16 +12,22 @@ def text(file_number, raw_html_directory):
     file_handle.close()
 
     soup = BeautifulSoup(raw_html, 'html.parser')
-    raw_text = soup.get_text()
-    start_index = raw_text.find('CONTRACTS')
+    contract_num = soup.find(id="ctl00_cphBody_ContentContents_PressOpsItemContentPreTitle").get_text()
+
+    raw_text = soup.find(id="ctl00_cphBody_ContentContents_lblArticleContent").get_text()
+    start_index = 0
     end_index = raw_text.find('Most Recent Contracts')
     if end_index == -1:
         end_index = 1000000000
-
     if start_index == -1:
         return []
     else:
-        return raw_text[start_index:end_index].strip().replace('\n\n', 'XXXX').replace('\n', '').replace('XXXX', '\n').split('\n')
+        contracts = raw_text[start_index:end_index].strip()
+        part = re.compile('(...-..)').split(contract_num)
+        part += re.compile('(\(......-..-.-....\))').split(contracts)
+        return "\n".join(part)
+
+        # return raw_text[start_index:end_index].strip().replace('\n\n', 'XXXX').replace('\n', '').replace('XXXX', '\n').split('\n')
 
 def main():
     raw_html_default_directory = "./dod_raw_html"
