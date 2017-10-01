@@ -38,7 +38,10 @@ def pull(cid, folder, file_name):
 
 def pull_list(xs):
     for cid in xs:
-        pull(cid, directory, str(cid) + ".html")
+        try:
+            pull(cid, directory, str(cid) + ".html")
+        except UnicodeEncodeError as e:
+            print("Error found wile using pull: ", e)
 
 def pull_gen(xs):
     return lambda: pull_list(xs)

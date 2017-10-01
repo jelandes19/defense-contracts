@@ -63,7 +63,10 @@ def main():
         file_numbers.append(int(file_number))
 
     for number in sorted(file_numbers):
-        out_lines = text(number, raw_html_directory)
+        try:
+            out_lines = text(number, raw_html_directory)
+        except UnicodeDecodeError as e:
+            print("Error found: ", e)
         out_file = os.path.join(text_directory, str(number) + ".txt")
         print("Writing " + out_file)
         out_file_handle = open(out_file, "w")
