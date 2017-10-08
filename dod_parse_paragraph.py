@@ -2,6 +2,13 @@ from bs4 import BeautifulSoup
 import os
 import sys
 import re
+import textwrap
+try:
+    import html5lib
+except ModuleNotFoundError as e:
+    print("html5lib module needs to be installed for this program to run properly: "+ e)
+    sys.exit(1)
+
 
 def text(file_number, raw_html_directory):
     file_name = str(file_number) + ".html"
@@ -11,10 +18,35 @@ def text(file_number, raw_html_directory):
     raw_html = file_handle.read()
     file_handle.close()
 
-    soup = BeautifulSoup(raw_html, 'html.parser')
-    contract_num = soup.find(id="ctl00_cphBody_ContentContents_PressOpsItemContentPreTitle").get_text()
+#    soup = BeautifulSoup(raw_html, 'html.parser')
+    soup = BeautifulSoup(raw_html, 'html5lib') #"html.parser" was not correcting the html code (it wass just ignoring incorrect tags)
 
-    raw_text = soup.find(id="ctl00_cphBody_ContentContents_lblArticleContent").get_text()
+# Contract number, date. In the right format "02 25, 2000"  ----> "20000225"
+    contract_num = soup.find(id="ctl00_cphBody_ContentContents_PressOpsItemContentPreTitle").get_text().strip("No: ").strip()
+    rep = {"January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06", "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"} 
+    rep = dict((re.escape(k), v) for k, v in rep.items())
+    pattern = re.compile("|".join(rep.keys()))
+    date_contract = pattern.sub(lambda m: rep[re.escape(m.group(0))], contract_num[6:])
+    date_contract = "".join([date_contract[7:], date_contract[:2], date_contract[3:][:2]])
+    contract_num = "\n".join([str(file_number), date_contract, contract_num[:6]+"\n"])
+# Separating by paragraph s.t. contract_num can be added. Does not write one line paragraphs such as types of contract titles (e.g. NAVY)
+# or empty paragraphs created by the parser. 
+    raw_text = ""
+    paragraph_texts = soup.find(id="ctl00_cphBody_ContentContents_lblArticleContent").find_all("p")
+    for paragraph in paragraph_texts:
+        if len(paragraph.get_text()) > 70:
+            text_paragraph = paragraph.get_text().strip()
+            text_paragraph = "\n".join(textwrap.wrap(text_paragraph, width = 90))
+            raw_text = raw_text + "\nidentifier_" + text_paragraph
+    if len(raw_text) < 50:
+        raw_text = ""
+        paragraph_texts = soup.find(id="ctl00_cphBody_ContentContents_lblArticleContent").find_all("div")
+        for paragraph in paragraph_texts:
+            if len(paragraph.get_text()) > 70:
+                text_paragraph = paragraph.get_text().strip()
+                text_paragraph = "\n".join(textwrap.wrap(text_paragraph, width = 90))
+                raw_text = raw_text + "\nidentifier_"  + text_paragraph
+
     start_index = 0
     end_index = raw_text.find('Most Recent Contracts')
     if end_index == -1:
@@ -23,9 +55,11 @@ def text(file_number, raw_html_directory):
         return []
     else:
         contracts = raw_text[start_index:end_index].strip()
+        contracts = re.sub(r"\nidentifier_", "\n******************************\n"+contract_num, contracts).strip("identifier_")
+#        contracts = contracts.replace("\n\n", "\n******************************\n"+contract_num+"\n")
         part = re.compile('(...-..)').split(contract_num)
         part += re.compile('(\(......-..-.-....\))').split(contracts)
-        return "\n".join(part)
+        return "".join(part)
 
         # return raw_text[start_index:end_index].strip().replace('\n\n', 'XXXX').replace('\n', '').replace('XXXX', '\n').split('\n')
 
@@ -78,7 +112,7 @@ def main():
         print("Writing " + out_file)
         out_file_handle = open(out_file, "w")
         for line in out_lines:
-            out_file_handle.write(line)
+                out_file_handle.write(line)
         out_file_handle.close()
 
 if __name__ == "__main__":
